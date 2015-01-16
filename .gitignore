@@ -1,0 +1,7 @@
+
+*.dSYM
+*.mk
+*.o
+file
+client_demo
+server_demo
