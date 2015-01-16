@@ -106,13 +106,12 @@ char *name;
   struct sym_list *sp;
 
 
-  for( sp = Head.s_next; sp != (struct sym_list *) NULL; sp = sp->s_next)
-    {
-      if( strcmp( sp->s_sym.v_name, name ) == 0 )
-	return( sp );
+    for( sp = Head.s_next; sp != (struct sym_list *) NULL; sp = sp->s_next) {
+        if ( strcmp( sp->s_sym.v_name, name ) == 0 )
+	        return( sp );
     }
 
-  return( (struct sym_list *) NULL );
+    return( (struct sym_list *) NULL );
 }
 
 /* save() -

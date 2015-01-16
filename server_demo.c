@@ -28,38 +28,39 @@ struct sym_list Head;	/* head of singly-linked list */
  */
 
 int main(int argc, char *argv[], char *env[] ) {
-    int server_fd, create_service(), nbytes;
+    int server_fd, create_service();
     void service(), save(), restore();
-    socklen_t len;
-    struct sockaddr_in cliaddr;
     char buf[BUFSIZE];
     extern int close();
 
     server_fd = create_service();
 
-    while( HELL_NOT_FROZEN ) {
-        len = sizeof( cliaddr );
-        nbytes = recvfrom(server_fd, buf, BUFSIZE, 0,
-                (struct sockaddr*)&cliaddr, &len);
-        buf[nbytes] = 0;
-        printf("\nReceived the following:\n");
-        printf("%s\n", buf);
+    //while( HELL_NOT_FROZEN ) {
         
-	    //restore( DATABASE );
-	    //service(connection_fd);
-	    //save( DATABASE );
-
-	    //close( connection_fd );
-    }
+	restore( DATABASE );
+	service(server_fd);
+	save( DATABASE );
+	close( server_fd );
+    //}
 }
 
 void service( int fd ) {
     char buf[BUFSIZE];
-    extern  void fix_tcl(), insert();
+    int nbytes;
+    socklen_t len;
+    struct sockaddr_in cliaddr;
+    void save(), restore();
+    extern void fix_tcl(), insert();
 
+    len = sizeof( cliaddr );
+    
     //SERVER LOOP
     for(;;) {
+        //ptr - location of equals/dollar sign if any or NULL
         char *ptr, *name, *value;
+
+        nbytes = recvfrom(fd, buf, BUFSIZE, 0,
+                (struct sockaddr*)&cliaddr, &len);
 
         fix_tcl( buf ); /* hack to interface with tcl scripting language */
 
@@ -73,11 +74,15 @@ void service( int fd ) {
        	    name = strsave( buf ); 
        	    value = strsave( ++ptr );
        	    insert( name, value );
-            //fputs( "\n", client_reply );
-       	    //fflush( client_reply );
+
+            //Send new line character to client.
+            sendto(fd, "\n", BUFSIZE, 0, (struct sockaddr*)&cliaddr, len);
+
             #ifdef EBUG
             fprintf( stderr, "REPLY: <>\n" );
             #endif
+
+            save(DATABASE);
 	    }
         else if ((ptr = find_dollar( buf )) != (char *) NULL) /* RETRIEVE */ {
 	        char *reply, *find_newline; 
@@ -89,15 +94,14 @@ void service( int fd ) {
 	        *find_newline = EOS;
 
 	        if( (reply = lookup( ++ptr )) != NULL ) {
-	            //fputs( reply, client_reply );
-	            //fflush( client_reply );
+                //TODO: Ask about using BUFSIZE instead of strlen(reply).
+                sendto(fd, reply, BUFSIZE, 0, (struct sockaddr*)&cliaddr, len);
                 #ifdef EBUG
                 fprintf( stderr, "REPLY: <%s>\n", reply );
                 #endif
 	        }
 	        else {
-	            //fputs( "\n", client_reply );
-	            //fflush( client_reply );
+                sendto(fd, "\n", BUFSIZE, 0, (struct sockaddr*)&cliaddr, len);
                 #ifdef EBUG
                 fprintf( stderr, "REPLY: <>\n" );
                 #endif
@@ -148,11 +152,6 @@ int create_service() {
         perror( "bind on listenfd");
         exit( ERR_BIND );
     }
-
-    //if( listen( listenfd, LISTENQ ) < 0 ) {
-    //    perror( "listen on listenfd" );
-    //    exit( ERR_LISTEN );
-    //}
 
     return( listenfd );
 }

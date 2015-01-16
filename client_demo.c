@@ -70,19 +70,6 @@ int main( int argc, char *argv[] ) {
         perror( "connect to associative memory at server" );
         exit( 100 );
     }
-    
-
-    /* setup the interfaces between the new socket and stdio system */
-    //server_request = fdopen( sockfd, "w" );
-    //if ( server_request == (FILE *) NULL ) {
-    //    perror( "fdopen of stream for server requests" );
-    //    exit( 2 );
-    //}
-    //server_reply = fdopen( sockfd, "r" );
-    //if ( server_reply == (FILE *) NULL ) {
-    //    perror( "fdopen of stream for server replies" );
-    //    exit( 3 );
-    //}
 
     int nbytes;
     /* The main interactive loop, getting input from the user and 
@@ -91,33 +78,34 @@ int main( int argc, char *argv[] ) {
     * this primitive user interface...
     */
     for( putchar('>');
-       (fgets( buf, BUFSIZE, stdin ) != NULL );
-       putchar('>')) {
+        (fgets( buf, BUFSIZE, stdin ) != NULL );
+        putchar('>')) {
+
         nbytes = send(sockfd, buf, BUFSIZE, 0);
         if (nbytes < 0) {
             perror("write failure to associative memory at server");
         }
 
         /* user wants value */
-        //if ( (find_equals( buf ) == NULL) && (find_dollar( buf ) != NULL) ) {
-	    //    if ( fgets( buf, BUFSIZE, server_reply ) == NULL ) {
-	    //        perror( "read failure from associative memory at server");
-	    //    }
-	    //    fputs( buf, stdout );
-	    //}
+        if ( (find_equals( buf ) == NULL) && (find_dollar( buf ) != NULL) ) {
+	        nbytes = recv(sockfd, buf, BUFSIZE, 0);
+            if (nbytes < 0) {
+	            perror( "read failure from associative memory at server");
+	        }
+	        fputs( buf, stdout );
+	    }
 
         /* user sets value */
-        //if ( (find_equals( buf ) != NULL) && (find_dollar( buf ) == NULL) ) {
-	    //    if( fgets( buf, BUFSIZE, server_reply ) == NULL ) {
-	    //        perror( "read failure from associative memory at server");
-	    //    }
-	    //}
+        if ( (find_equals( buf ) != NULL) && (find_dollar( buf ) == NULL) ) {
+            nbytes = recv(sockfd, buf, BUFSIZE, 0);
+            if (nbytes < 0) {
+                perror( "read failure from server" );
+            }
+            //fputs(buf, stdout); //Write to stdout.
+	    }
     }
 
     /* shut things down */
-    fclose( server_request );
-    fclose( server_reply );
     close( sockfd); 
-
     exit( 0 );
 }
