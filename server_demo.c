@@ -28,51 +28,37 @@ struct sym_list Head;	/* head of singly-linked list */
  */
 
 int main(int argc, char *argv[], char *env[] ) {
-  int server_fd, create_service(), connection_fd;
-  void service(), save(), restore();
-  socklen_t len;
-  struct sockaddr_in cliaddr;
-  char buf[BUFSIZE];
-  extern int close();
+    int server_fd, create_service(), nbytes;
+    void service(), save(), restore();
+    socklen_t len;
+    struct sockaddr_in cliaddr;
+    char buf[BUFSIZE];
+    extern int close();
 
-  server_fd = create_service();
+    server_fd = create_service();
 
     while( HELL_NOT_FROZEN ) {
         len = sizeof( cliaddr );
-        connection_fd = accept( server_fd, (SA *) &cliaddr, &len );
+        nbytes = recvfrom(server_fd, buf, BUFSIZE, 0,
+                (struct sockaddr*)&cliaddr, &len);
+        buf[nbytes] = 0;
+        printf("\nReceived the following:\n");
+        printf("%s\n", buf);
+        
+	    //restore( DATABASE );
+	    //service(connection_fd);
+	    //save( DATABASE );
 
-        if( connection_fd < 0 ) {
-	    perror( "accept on server_fd" );
-	    exit( ERR_ACCEPT );
-	    }
-
-	    restore( DATABASE );
-	    service(connection_fd);
-	    save( DATABASE );
-
-	    close( connection_fd );
+	    //close( connection_fd );
     }
 }
 
 void service( int fd ) {
-  FILE *client_request, *client_reply, *fdopen();
-  char buf[BUFSIZE];
-  extern  void fix_tcl(), insert();
-
-  /* interface between socket and stdio */
-  client_request = fdopen( fd, "r" );
-    if( client_request == (FILE *) NULL ) {
-        perror( "fdopen of client_request" );
-        exit( 1 );
-    }
-    client_reply = fdopen( fd, "w" );
-    if ( client_reply == (FILE *) NULL ) {
-        perror( "fdopen of client_reply" );
-        exit( 1 );
-    }
+    char buf[BUFSIZE];
+    extern  void fix_tcl(), insert();
 
     //SERVER LOOP
-    while( fgets( buf, BUFSIZE, client_request ) != NULL ) {
+    for(;;) {
         char *ptr, *name, *value;
 
         fix_tcl( buf ); /* hack to interface with tcl scripting language */
@@ -87,8 +73,8 @@ void service( int fd ) {
        	    name = strsave( buf ); 
        	    value = strsave( ++ptr );
        	    insert( name, value );
-            fputs( "\n", client_reply );
-       	    fflush( client_reply );
+            //fputs( "\n", client_reply );
+       	    //fflush( client_reply );
             #ifdef EBUG
             fprintf( stderr, "REPLY: <>\n" );
             #endif
@@ -103,15 +89,15 @@ void service( int fd ) {
 	        *find_newline = EOS;
 
 	        if( (reply = lookup( ++ptr )) != NULL ) {
-	            fputs( reply, client_reply );
-	            fflush( client_reply );
+	            //fputs( reply, client_reply );
+	            //fflush( client_reply );
                 #ifdef EBUG
                 fprintf( stderr, "REPLY: <%s>\n", reply );
                 #endif
 	        }
 	        else {
-	            fputs( "\n", client_reply );
-	            fflush( client_reply );
+	            //fputs( "\n", client_reply );
+	            //fflush( client_reply );
                 #ifdef EBUG
                 fprintf( stderr, "REPLY: <>\n" );
                 #endif
@@ -128,10 +114,22 @@ void service( int fd ) {
 
 int create_service() {
     int listenfd;
+    /*
+     * struct sockaddr_in {
+     *     _uint8_t         sin_len;
+     *     sa_family_t      sin_family;
+     *     in_port_t        sin_port;
+     *     struct in_addr   sin_addr;
+     *     char             sin_zero[8];
+     * }
+     */
     struct sockaddr_in servaddr;
 
-    //create socket. AF = Address Family prefix
-    listenfd = socket(AF_INET, SOCK_STREAM, 0 );
+    /*
+     * Create socket and get the file descriptor.
+     * For UDP we will use SOCK_DGRAM instead of SOCK_STREAM.
+     */
+    listenfd = socket(AF_INET, SOCK_DGRAM, 0);
     if( listenfd < 0 ) {
         perror( "creating socket for listenfd" );
         exit( ERR_SOCKET );
@@ -142,15 +140,20 @@ int create_service() {
     servaddr.sin_addr.s_addr = htonl( INADDR_ANY );
     servaddr.sin_port = htons( CIS553_PORT );
 
+    /*
+     * Name the socket by assigning a port to it.
+     * n.b. SA macro from defs.h for struct sock_addr
+     */
     if( bind( listenfd, (SA *) &servaddr, sizeof(servaddr) ) < 0 ) {
         perror( "bind on listenfd");
         exit( ERR_BIND );
     }
 
-    if( listen( listenfd, LISTENQ ) < 0 ) {
-        perror( "listen on listenfd" );
-        exit( ERR_LISTEN );
-    }
+    //if( listen( listenfd, LISTENQ ) < 0 ) {
+    //    perror( "listen on listenfd" );
+    //    exit( ERR_LISTEN );
+    //}
+
     return( listenfd );
 }
 

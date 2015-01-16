@@ -36,18 +36,21 @@ int main( int argc, char *argv[] ) {
     }
   
     /* 
-     * Open up a TCP/IP socket.
+     * Open up a UDP socket.
      * Creates an unnamed socket and returns a file descriptor.
      * socket(address domain, socket type, protocol; 0 : default)
      */
-    if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0 )) < 0 ) {
+    if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0 )) < 0 ) {
         perror( "socket open" );
         exit( ERR_SOCKET );
     }
   
     /*
-     * initialize and prepare for connections to a server 
+     * Initialize and prepare for connections to a server.
      * htons: converts a short integer (port) to a network repr.
+     * (host to network - short)
+     * macros are useful for portability between big-endian/
+     * little-endian architectures
      */
     bzero( &servaddr, sizeof(servaddr ));
     servaddr.sin_family = AF_INET;
@@ -67,19 +70,21 @@ int main( int argc, char *argv[] ) {
         perror( "connect to associative memory at server" );
         exit( 100 );
     }
+    
 
     /* setup the interfaces between the new socket and stdio system */
-    server_request = fdopen( sockfd, "w" );
-    if ( server_request == (FILE *) NULL ) {
-        perror( "fdopen of stream for server requests" );
-        exit( 2 );
-    }
-    server_reply = fdopen( sockfd, "r" );
-    if ( server_reply == (FILE *) NULL ) {
-        perror( "fdopen of stream for server replies" );
-        exit( 3 );
-    }
+    //server_request = fdopen( sockfd, "w" );
+    //if ( server_request == (FILE *) NULL ) {
+    //    perror( "fdopen of stream for server requests" );
+    //    exit( 2 );
+    //}
+    //server_reply = fdopen( sockfd, "r" );
+    //if ( server_reply == (FILE *) NULL ) {
+    //    perror( "fdopen of stream for server replies" );
+    //    exit( 3 );
+    //}
 
+    int nbytes;
     /* The main interactive loop, getting input from the user and 
     * passing to the server, and presenting replies from the server to
     * the user, as appropriate. Lots of opportunity to generalize
@@ -88,25 +93,25 @@ int main( int argc, char *argv[] ) {
     for( putchar('>');
        (fgets( buf, BUFSIZE, stdin ) != NULL );
        putchar('>')) {
-        if ( fputs( buf, server_request ) == EOF ) {
-	        perror( "write failure to associative memory at server" );
-	    }
-        fflush( server_request );  /* buffering everywhere.... */
+        nbytes = send(sockfd, buf, BUFSIZE, 0);
+        if (nbytes < 0) {
+            perror("write failure to associative memory at server");
+        }
 
         /* user wants value */
-        if ( (find_equals( buf ) == NULL) && (find_dollar( buf ) != NULL) ) {
-	        if ( fgets( buf, BUFSIZE, server_reply ) == NULL ) {
-	            perror( "read failure from associative memory at server");
-	        }
-	        fputs( buf, stdout );
-	    }
+        //if ( (find_equals( buf ) == NULL) && (find_dollar( buf ) != NULL) ) {
+	    //    if ( fgets( buf, BUFSIZE, server_reply ) == NULL ) {
+	    //        perror( "read failure from associative memory at server");
+	    //    }
+	    //    fputs( buf, stdout );
+	    //}
 
         /* user sets value */
-        if ( (find_equals( buf ) != NULL) && (find_dollar( buf ) == NULL) ) {
-	        if( fgets( buf, BUFSIZE, server_reply ) == NULL ) {
-	            perror( "read failure from associative memory at server");
-	        }
-	    }
+        //if ( (find_equals( buf ) != NULL) && (find_dollar( buf ) == NULL) ) {
+	    //    if( fgets( buf, BUFSIZE, server_reply ) == NULL ) {
+	    //        perror( "read failure from associative memory at server");
+	    //    }
+	    //}
     }
 
     /* shut things down */
