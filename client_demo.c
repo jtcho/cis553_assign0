@@ -1,6 +1,7 @@
 
 /*
  * demo client
+ * ===========
  * It provides an associative memory for strings
  * strings are named with an assignment, e.g.,
  * a=mary had a little lamb
@@ -45,21 +46,21 @@ int main( int argc, char *argv[] ) {
         exit( ERR_SOCKET );
     }
   
-    /*
-     * Initialize and prepare for connections to a server.
-     * htons: converts a short integer (port) to a network repr.
-     * (host to network - short)
-     * macros are useful for portability between big-endian/
-     * little-endian architectures
-     */
+   /*
+    * Initialize and prepare for connections to a server.
+    * htons: converts a short integer (port) to a network repr.
+    * (host to network - short)
+    * macros are useful for portability between big-endian/
+    * little-endian architectures
+    */
     bzero( &servaddr, sizeof(servaddr ));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons( CIS553_PORT );
 
-    /* 
-     * convert address, e.g., 127.0.0.1, to the right format 
-     * inet_pton : convert ipv4 and ipv6 addresses from text to binary form
-     */
+   /* 
+    * convert address, e.g., 127.0.0.1, to the right format 
+    * inet_pton : convert ipv4 and ipv6 addresses from text to binary form
+    */
     if ( inet_pton( AF_INET, argv[1], &servaddr.sin_addr ) <= 0 ) {
         perror( "inet_pton for address" );
         exit( 99 );
@@ -71,16 +72,17 @@ int main( int argc, char *argv[] ) {
         exit( 100 );
     }
 
-    int nbytes;
-    /* The main interactive loop, getting input from the user and 
+   /* The main interactive loop, getting input from the user and 
     * passing to the server, and presenting replies from the server to
     * the user, as appropriate. Lots of opportunity to generalize
     * this primitive user interface...
     */
+    int nbytes;
     for( putchar('>');
         (fgets( buf, BUFSIZE, stdin ) != NULL );
         putchar('>')) {
 
+        /* send user input to server */
         nbytes = send(sockfd, buf, BUFSIZE, 0);
         if (nbytes < 0) {
             perror("write failure to associative memory at server");
@@ -101,7 +103,6 @@ int main( int argc, char *argv[] ) {
             if (nbytes < 0) {
                 perror( "read failure from server" );
             }
-            //fputs(buf, stdout); //Write to stdout.
 	    }
     }
 

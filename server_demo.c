@@ -24,26 +24,26 @@ struct sym_list Head;	/* head of singly-linked list */
  * invocations.
  * Iterative server code is copied from Stevens, "UNIX Network
  * Programming: Networking APIs: Sockets and XTI," p. 101
- *
  */
-
 int main(int argc, char *argv[], char *env[] ) {
     int server_fd, create_service();
     void service(), save(), restore();
-    char buf[BUFSIZE];
     extern int close();
 
     server_fd = create_service();
-
-    //while( HELL_NOT_FROZEN ) {
         
 	restore( DATABASE );
 	service(server_fd);
 	save( DATABASE );
 	close( server_fd );
-    //}
 }
 
+/*
+ * Function: service
+ * -----------------
+ * Runs the service on the given socket.
+ * @param fd - the file descriptor for the socket.
+ */
 void service( int fd ) {
     char buf[BUFSIZE];
     int nbytes;
@@ -55,10 +55,13 @@ void service( int fd ) {
     len = sizeof( cliaddr );
     
     //SERVER LOOP
+    //Runs forever, continuously listening for information from
+    //the client.
     for(;;) {
         //ptr - location of equals/dollar sign if any or NULL
         char *ptr, *name, *value;
 
+        //Load data from the socket.
         nbytes = recvfrom(fd, buf, BUFSIZE, 0,
                 (struct sockaddr*)&cliaddr, &len);
 
@@ -84,7 +87,8 @@ void service( int fd ) {
 
             save(DATABASE);
 	    }
-        else if ((ptr = find_dollar( buf )) != (char *) NULL) /* RETRIEVE */ {
+        /* RETRIEVE */
+        else if ((ptr = find_dollar( buf )) != (char *) NULL) {
 	        char *reply, *find_newline; 
             #ifdef EBUG
 	        dump( ptr );
@@ -116,6 +120,11 @@ void service( int fd ) {
     return;
 }
 
+/**
+ * Function: create_service
+ * ------------------------
+ * Creates a UDP socket service for the server to employ.
+ */
 int create_service() {
     int listenfd;
     /*
@@ -133,7 +142,7 @@ int create_service() {
      * Create socket and get the file descriptor.
      * For UDP we will use SOCK_DGRAM instead of SOCK_STREAM.
      */
-    listenfd = socket(AF_INET, SOCK_DGRAM, 0);
+    listenfd = socket(AF_INET, SOCK_DGRAM, 0 );
     if( listenfd < 0 ) {
         perror( "creating socket for listenfd" );
         exit( ERR_SOCKET );
@@ -156,6 +165,10 @@ int create_service() {
     return( listenfd );
 }
 
+/**
+ * Function: fix_tcl
+ * -----------------
+ */
 void fix_tcl( char *buf ) {
     char *ptr;
 
@@ -165,6 +178,10 @@ void fix_tcl( char *buf ) {
     return;
 }
  
+/**
+ * Function: dump
+ * --------------
+ */
 void dump( char *buf ) {
   fprintf( stderr, "strlen(buf)=%d, buf=<%s>\n", (int) strlen(buf), buf );
   {
